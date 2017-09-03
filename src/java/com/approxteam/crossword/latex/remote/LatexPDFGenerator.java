@@ -26,25 +26,33 @@ public class LatexPDFGenerator implements LatexPDFGeneratorRemote {
     public byte[] generatePDF(String clues, String document) throws IllegalArgumentException {
         String documentUUID = getTempUUID();
         String cluesUUID = getTempUUID();
+        String cluesPlaceHolder = LatexPlaceholder.CLUESNAMING.getPlaceholder();
+        byte[] generatedPDF = new byte[0];
+        document = document.replace(cluesPlaceHolder, cluesUUID);
         try {
             saveToFile(clues, cluesUUID + ".tex");
-            String cluesPlaceHolder = LatexPlaceholder.CLUESNAMING.getPlaceholder();
-            document = document.replace(cluesPlaceHolder, cluesUUID);
             saveToFile(document, documentUUID + ".tex");
-            Process pdfLatexProcess = new ProcessBuilder().command("pdflatex", "-halt-on-error " + documentUUID + ".tex").inheritIO().start();
+            Process pdfLatexProcess = new ProcessBuilder().command("pdflatex", "-interaction=nonstopmode", documentUUID + ".tex").inheritIO().start();
             int exitCode = pdfLatexProcess.waitFor();
             System.out.println("exitCode = " + exitCode);
             if(exitCode == 0) {
-                byte[] generatedPDF = readFromFile(documentUUID + ".pdf");
+                generatedPDF = readFromFile(documentUUID + ".pdf");
                 removeFilesStartingAt(documentUUID);
                 removeFilesStartingAt(cluesUUID);
-                return generatedPDF;
+            } else if(exitCode == 1) {
+                if(Files.exists(Paths.get(documentUUID + ".pdf"))) {
+                    generatedPDF = readFromFile(documentUUID + ".pdf");
+                    removeFilesStartingAt(documentUUID);
+                    removeFilesStartingAt(cluesUUID);
+                }
             }
+            
         } catch (IOException | InterruptedException ex) {
             Logger.getLogger(LatexPDFGenerator.class.getName()).log(Level.SEVERE, null, ex);
-            return new byte[0];
+            return generatedPDF;
         }
-        return new byte[0];
+        
+        return generatedPDF;
         
     }
     
