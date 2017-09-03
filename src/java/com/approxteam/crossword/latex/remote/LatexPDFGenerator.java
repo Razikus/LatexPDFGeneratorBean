@@ -23,16 +23,21 @@ import javax.ejb.Stateless;
 public class LatexPDFGenerator implements LatexPDFGeneratorRemote {
 
     @Override
-    public byte[] generatePDF(String document) throws IllegalArgumentException {
-        String tempUUID = getTempUUID();
+    public byte[] generatePDF(String clues, String document) throws IllegalArgumentException {
+        String documentUUID = getTempUUID();
+        String cluesUUID = getTempUUID();
         try {
-            saveToTempTexFile(document, tempUUID + ".tex");
-            Process iostat = new ProcessBuilder().command("pdflatex", tempUUID + ".tex").inheritIO().start();
-            int exitCode = iostat.waitFor();
+            saveToFile(clues, cluesUUID + ".tex");
+            String cluesPlaceHolder = LatexPlaceholder.CLUESNAMING.getPlaceholder();
+            document = document.replace(cluesPlaceHolder, cluesUUID);
+            saveToFile(document, documentUUID + ".tex");
+            Process pdfLatexProcess = new ProcessBuilder().command("pdflatex", "-halt-on-error " + documentUUID + ".tex").inheritIO().start();
+            int exitCode = pdfLatexProcess.waitFor();
             System.out.println("exitCode = " + exitCode);
             if(exitCode == 0) {
-                byte[] generatedPDF = readFromTempPDFFile(tempUUID + ".pdf");
-                removeFilesStartingAt(tempUUID);
+                byte[] generatedPDF = readFromFile(documentUUID + ".pdf");
+                removeFilesStartingAt(documentUUID);
+                removeFilesStartingAt(cluesUUID);
                 return generatedPDF;
             }
         } catch (IOException | InterruptedException ex) {
@@ -43,11 +48,11 @@ public class LatexPDFGenerator implements LatexPDFGeneratorRemote {
         
     }
     
-    public static void saveToTempTexFile(String content, String path) throws IOException {  
+    public static void saveToFile(String content, String path) throws IOException {  
         Files.write(Paths.get(path), content.getBytes());
     }
     
-    public static byte[] readFromTempPDFFile(String path) throws IOException {
+    public static byte[] readFromFile(String path) throws IOException {
         return Files.readAllBytes(Paths.get(path));
     }
     

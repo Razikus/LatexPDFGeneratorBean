@@ -13,5 +13,5 @@ import javax.ejb.Remote;
  */
 @Remote
 public interface LatexPDFGeneratorRemote {
-    public byte[] generatePDF(String document) throws IllegalArgumentException;
+    public byte[] generatePDF(String clues, String document) throws IllegalArgumentException;
 }
