@@ -23,14 +23,10 @@ import javax.ejb.Stateless;
 public class LatexPDFGenerator implements LatexPDFGeneratorRemote {
 
     @Override
-    public byte[] generatePDF(String clues, String document) throws IllegalArgumentException {
+    public byte[] generatePDF(String document) throws IllegalArgumentException {
         String documentUUID = getTempUUID();
-        String cluesUUID = getTempUUID();
-        String cluesPlaceHolder = LatexPlaceholder.CLUESNAMING.getPlaceholder();
         byte[] generatedPDF = new byte[0];
-        document = document.replace(cluesPlaceHolder, cluesUUID);
         try {
-            saveToFile(clues, cluesUUID + ".tex");
             saveToFile(document, documentUUID + ".tex");
             Process pdfLatexProcess = new ProcessBuilder().command("pdflatex", "-interaction=nonstopmode", documentUUID + ".tex").inheritIO().start();
             int exitCode = pdfLatexProcess.waitFor();
@@ -38,12 +34,10 @@ public class LatexPDFGenerator implements LatexPDFGeneratorRemote {
             if(exitCode == 0) {
                 generatedPDF = readFromFile(documentUUID + ".pdf");
                 removeFilesStartingAt(documentUUID);
-                removeFilesStartingAt(cluesUUID);
             } else if(exitCode == 1) {
                 if(Files.exists(Paths.get(documentUUID + ".pdf"))) {
                     generatedPDF = readFromFile(documentUUID + ".pdf");
                     removeFilesStartingAt(documentUUID);
-                    removeFilesStartingAt(cluesUUID);
                 }
             }
             
